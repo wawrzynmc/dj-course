@@ -1,18 +1,25 @@
 import OpenAI from "openai";
 
 import { Message } from "../../types";
-import { LLMChatSession, LLMClient } from "../types";
+import { LLMChatSession, LLMClient, SamplingConfig } from "../types";
 import { OpenAIChatSession } from "./openai.chatSession";
 import { openaiConfig } from "./openai.config";
+import { llmConfig } from "../llm.config";
 
 export class OpenAILLMClient implements LLMClient {
   private openaiClient: OpenAI;
   private modelName: string;
   private apiKey: string;
+  private defaultSamplingConfig?: SamplingConfig;
 
-  private constructor(modelName: string, apiKey: string) {
+  private constructor(
+    modelName: string,
+    apiKey: string,
+    samplingConfig?: SamplingConfig
+  ) {
     this.modelName = modelName;
     this.apiKey = apiKey;
+    this.defaultSamplingConfig = samplingConfig;
     this.openaiClient = new OpenAI({
       apiKey: this.apiKey,
     });
@@ -20,24 +27,43 @@ export class OpenAILLMClient implements LLMClient {
 
   public static fromEnvironment(): OpenAILLMClient {
     const config = openaiConfig();
-    return new OpenAILLMClient(config.modelName, config.apiKey);
+    const { temperature, topP, topK } = llmConfig();
+    // Note: topK will be ignored for OpenAI (warned in createChatSession)
+    return new OpenAILLMClient(config.modelName, config.apiKey, {
+      temperature,
+      topP,
+      topK,
+    });
   }
 
   public createChatSession(
     systemInstruction: string,
     history?: Message[],
-    thinkingBudget?: number
+    thinkingBudget?: number,
+    samplingConfig?: SamplingConfig
   ): LLMChatSession {
     // Note: OpenAI doesn't support thinkingBudget parameter
     if (thinkingBudget !== undefined) {
       console.warn("OpenAI does not support thinking budget parameter");
     }
 
+    // Merge default sampling config with provided one
+    const finalSamplingConfig = {
+      ...this.defaultSamplingConfig,
+      ...samplingConfig,
+    };
+
+    // Warn if topK is specified (OpenAI doesn't support it)
+    if (finalSamplingConfig.topK !== undefined) {
+      console.warn("OpenAI does not support topK parameter");
+    }
+
     return new OpenAIChatSession(
       this.openaiClient,
       this.modelName,
       systemInstruction,
-      history
+      history,
+      finalSamplingConfig
     );
   }
 

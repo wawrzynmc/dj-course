@@ -3,12 +3,14 @@
  */
 import { Message } from "../../types";
 import { LLMChatSession } from "./llmChatSession.type";
+import { SamplingConfig } from "./samplingConfig.type";
 
 export interface LLMClient {
   createChatSession(
     systemInstruction: string,
     history?: Message[],
-    thinkingBudget?: number
+    thinkingBudget?: number,
+    samplingConfig?: SamplingConfig
   ): LLMChatSession;
 
   countHistoryTokens(history: Message[]): number;

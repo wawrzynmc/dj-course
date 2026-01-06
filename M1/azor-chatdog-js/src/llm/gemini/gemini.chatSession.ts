@@ -1,14 +1,46 @@
-import { Chat } from "@google/genai";
+import { GoogleGenAI, Content, Chat } from "@google/genai";
 import { Message } from "../../types";
-import { LLMChatSession, LLMResponse } from "../types";
+import { LLMChatSession, LLMResponse, SamplingConfig } from "../types";
 
 export class GeminiChatSession implements LLMChatSession {
   private geminiSession: Chat;
   private history: Message[] = [];
+  private systemInstruction: string;
+  private samplingConfig?: SamplingConfig;
+  private genAI: GoogleGenAI;
+  private modelName: string;
+  private thinkingBudget: number;
 
-  constructor(geminiSession: Chat, initialHistory?: Message[]) {
-    this.geminiSession = geminiSession;
+  constructor(
+    genAI: GoogleGenAI,
+    modelName: string,
+    systemInstruction: string,
+    thinkingBudget: number = 0,
+    initialHistory?: Message[],
+    samplingConfig?: SamplingConfig
+  ) {
+    this.genAI = genAI;
+    this.modelName = modelName;
+    this.systemInstruction = systemInstruction;
+    this.thinkingBudget = thinkingBudget;
     this.history = initialHistory || [];
+    this.samplingConfig = samplingConfig;
+
+    // Create Gemini session with converted history
+    const geminiHistory = this.convertToGeminiMessages(this.history);
+    this.geminiSession = this.genAI.chats.create({
+      model: this.modelName,
+      config: {
+        systemInstruction: this.systemInstruction,
+        thinkingConfig: {
+          thinkingBudget: this.thinkingBudget,
+        },
+        temperature: this.samplingConfig?.temperature,
+        topP: this.samplingConfig?.topP,
+        topK: this.samplingConfig?.topK,
+      },
+      history: geminiHistory,
+    });
   }
 
   async sendMessage(text: string): Promise<LLMResponse> {
@@ -30,5 +62,12 @@ export class GeminiChatSession implements LLMChatSession {
 
   getHistory(): Message[] {
     return this.history;
+  }
+
+  private convertToGeminiMessages(history: Message[]): Content[] {
+    return history.map((msg) => ({
+      role: msg.role === "model" ? "model" : "user",
+      parts: msg.parts.map((part) => ({ text: part.text })),
+    }));
   }
 }

@@ -1,52 +1,58 @@
-import { GoogleGenAI, Content, CreateChatParameters } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 import { geminiConfig } from "./gemini.config";
+import { llmConfig } from "../llm.config";
 import { Message } from "../../types";
-import { LLMChatSession, LLMClient } from "../types";
+import { LLMChatSession, LLMClient, SamplingConfig } from "../types";
 import { GeminiChatSession } from "./gemini.chatSession";
 
 export class GeminiLLMClient implements LLMClient {
   private genAI: GoogleGenAI;
   private modelName: string;
   private apiKey: string;
+  private defaultSamplingConfig?: SamplingConfig;
 
-  private constructor(modelName: string, apiKey: string) {
+  private constructor(
+    modelName: string,
+    apiKey: string,
+    samplingConfig?: SamplingConfig
+  ) {
     this.modelName = modelName;
     this.apiKey = apiKey;
+    this.defaultSamplingConfig = samplingConfig;
     this.genAI = new GoogleGenAI({ apiKey });
   }
 
   public static fromEnvironment(): GeminiLLMClient {
     const config = geminiConfig();
-    return new GeminiLLMClient(config.modelName, config.apiKey);
+    const { temperature, topP, topK } = llmConfig();
+    return new GeminiLLMClient(config.modelName, config.apiKey, {
+      temperature,
+      topP,
+      topK,
+    });
   }
 
   public createChatSession(
     systemInstruction: string,
     history?: Message[],
-    thinkingBudget: number = 0 // 0 is disabled, -1 is automatic, other values are model dependent
+    thinkingBudget: number = 0, // 0 is disabled, -1 is automatic, other values are model dependent
+    samplingConfig?: SamplingConfig
   ): LLMChatSession {
-    // Convert universal Message format to Gemini Content format
-    const geminiHistory: Content[] = (history || []).map((msg) => ({
-      role: msg.role === "model" ? "model" : "user",
-      parts: msg.parts.map((part) => ({ text: part.text })),
-    }));
-
-    // Create chat session configuration
-    const chatConfig: CreateChatParameters = {
-      model: this.modelName,
-      config: {
-        systemInstruction,
-        thinkingConfig: {
-          thinkingBudget,
-        },
-      },
-      history: geminiHistory,
+    // Merge default sampling config with provided one
+    const finalSamplingConfig = {
+      ...this.defaultSamplingConfig,
+      ...samplingConfig,
     };
 
-    const geminiSession = this.genAI.chats.create(chatConfig);
-
-    return new GeminiChatSession(geminiSession, history);
+    return new GeminiChatSession(
+      this.genAI,
+      this.modelName,
+      systemInstruction,
+      thinkingBudget,
+      history,
+      finalSamplingConfig
+    );
   }
 
   public countHistoryTokens(history: Message[]): number {

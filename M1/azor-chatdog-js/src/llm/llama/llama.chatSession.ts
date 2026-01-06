@@ -3,7 +3,7 @@ import {
   getLlama,
 } from "node-llama-cpp";
 import { Message } from "../../types";
-import { LLMChatSession, LLMResponse } from "../types";
+import { LLMChatSession, LLMResponse, SamplingConfig } from "../types";
 
 export class LlamaChatSession implements LLMChatSession {
   private history: Message[] = [];
@@ -12,6 +12,7 @@ export class LlamaChatSession implements LLMChatSession {
   private gpuLayers: number;
   private contextSize: number;
   private flashAttention: boolean;
+  private samplingConfig?: SamplingConfig;
   private llamaSession: NodeLlamaChatSession | null = null;
   private initializationPromise: Promise<void> | null = null;
 
@@ -21,7 +22,8 @@ export class LlamaChatSession implements LLMChatSession {
     gpuLayers: number,
     contextSize: number,
     flashAttention: boolean,
-    initialHistory?: Message[]
+    initialHistory?: Message[],
+    samplingConfig?: SamplingConfig
   ) {
     this.systemInstruction = systemInstruction;
     this.modelPath = modelPath;
@@ -29,6 +31,7 @@ export class LlamaChatSession implements LLMChatSession {
     this.contextSize = contextSize;
     this.flashAttention = flashAttention;
     this.history = initialHistory || [];
+    this.samplingConfig = samplingConfig;
 
     // Start eager loading immediately
     this.initializationPromise = this.initializeModel();
@@ -90,8 +93,12 @@ export class LlamaChatSession implements LLMChatSession {
       parts: [{ text }],
     });
 
-    // Send message to model
-    const responseText = await this.llamaSession.prompt(text);
+    // Send message to model with sampling parameters
+    const responseText = await this.llamaSession.prompt(text, {
+      temperature: this.samplingConfig?.temperature,
+      topP: this.samplingConfig?.topP,
+      topK: this.samplingConfig?.topK,
+    });
 
     // Add response to history
     this.history.push({

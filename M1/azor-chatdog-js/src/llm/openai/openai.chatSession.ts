@@ -1,23 +1,26 @@
 import OpenAI from "openai";
 import { Message } from "../../types";
-import { LLMChatSession, LLMResponse } from "../types";
+import { LLMChatSession, LLMResponse, SamplingConfig } from "../types";
 
 export class OpenAIChatSession implements LLMChatSession {
   private openaiClient: OpenAI;
   private modelName: string;
   private history: Message[] = [];
   private systemInstruction: string;
+  private samplingConfig?: SamplingConfig;
 
   constructor(
     openaiClient: OpenAI,
     modelName: string,
     systemInstruction: string,
-    initialHistory?: Message[]
+    initialHistory?: Message[],
+    samplingConfig?: SamplingConfig
   ) {
     this.openaiClient = openaiClient;
     this.modelName = modelName;
     this.systemInstruction = systemInstruction;
     this.history = initialHistory || [];
+    this.samplingConfig = samplingConfig;
   }
 
   async sendMessage(text: string): Promise<LLMResponse> {
@@ -33,6 +36,9 @@ export class OpenAIChatSession implements LLMChatSession {
     const completion = await this.openaiClient.chat.completions.create({
       model: this.modelName,
       messages: openaiMessages,
+      temperature: this.samplingConfig?.temperature,
+      top_p: this.samplingConfig?.topP,
+      // Note: topK is not supported by OpenAI
     });
 
     const responseText = completion.choices[0].message.content || "";
