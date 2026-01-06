@@ -1,39 +1,22 @@
-/**
- * Main chat loop and initialization
- */
+import { config } from "dotenv";
+import { createAssistant } from "./assistant/createAssistant";
+import { getSessionManager } from "./session/sessionManager";
+import { getSessionIdFromCLI } from "./cli/args";
+import { getUserInput } from "./cli/prompt";
+import { printAssistant, printInfo, printError } from "./cli/console";
+import { logWelcome } from "./commands/logWelcome";
+import { handleCommand } from "./commandHandler";
 
-import { config } from 'dotenv';
-import { createAzorAssistant } from './assistant/azor.js';
-import { getSessionManager } from './session/sessionManager.js';
-import { getSessionIdFromCLI } from './cli/args.js';
-import { getUserInput } from './cli/prompt.js';
-import { printAssistant, printInfo, printError } from './cli/console.js';
-import { printWelcome } from './commands/welcome.js';
-import { handleCommand } from './commandHandler.js';
-
-// Load environment variables
 config();
 
-/**
- * Initialize the chat application
- */
 export function initChat(): void {
-  // Print welcome banner
-  printWelcome();
+  logWelcome();
 
-  // Create assistant
-  const assistant = createAzorAssistant();
-
-  // Get session manager
+  const assistant = createAssistant();
   const manager = getSessionManager(assistant);
-
-  // Get CLI session ID if provided
   const cliSessionId = getSessionIdFromCLI();
-
-  // Initialize session from CLI
   const session = manager.initializeFromCLI(cliSessionId);
 
-  // Display session info
   if (cliSessionId) {
     printInfo(`Loaded session: ${session.id}`);
   } else {
@@ -41,16 +24,16 @@ export function initChat(): void {
   }
 
   printInfo(`Using model: ${session.modelName}`);
-  printInfo('Type /help for available commands\n');
+  printInfo("Type /help for available commands\n");
 
   // Register cleanup handler
-  process.on('exit', () => {
+  process.on("exit", () => {
     manager.cleanupAndSave();
   });
 
-  process.on('SIGINT', () => {
-    console.log('\n');
-    printInfo('Saving session and exiting...');
+  process.on("SIGINT", () => {
+    console.log("\n");
+    printInfo("Saving session and exiting...");
     manager.cleanupAndSave();
     process.exit(0);
   });
@@ -60,7 +43,7 @@ export function initChat(): void {
  * Main chat loop
  */
 export async function mainLoop(): Promise<void> {
-  const assistant = createAzorAssistant();
+  const assistant = createAssistant();
   const manager = getSessionManager(assistant);
 
   while (true) {
@@ -74,7 +57,7 @@ export async function mainLoop(): Promise<void> {
       }
 
       // Handle commands
-      if (userInput.startsWith('/')) {
+      if (userInput.startsWith("/")) {
         const shouldExit = handleCommand(userInput, manager);
         if (shouldExit) {
           break;

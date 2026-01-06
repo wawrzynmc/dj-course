@@ -1,6 +1,2 @@
-/**
- * Assistant exports
- */
-
-export * from './assistant.js';
-export * from './azor.js';
+export * from "./assistant";
+export * from "./createAssistant";

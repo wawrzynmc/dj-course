@@ -2,38 +2,14 @@
  * ChatSession - Manages a single chat session
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import type { Assistant } from '../assistant/assistant.js';
-import type {
-  ILLMClient,
-  ILLMChatSession,
-  Message,
-  LLMResponse,
-  TokenInfo,
-  Result,
-} from '../types/index.js';
-import { loadSessionHistory, saveSessionHistory } from '../files/sessionFiles.js';
-import { appendToWAL } from '../files/wal.js';
-import { MAX_CONTEXT_TOKENS } from '../files/config.js';
-import { GeminiLLMClient } from '../llm/geminiClient.js';
-import { LlamaClient } from '../llm/llamaClient.js';
-
-/**
- * Engine mapping for LLM client selection
- */
-const ENGINE_MAPPING: Record<string, typeof GeminiLLMClient | typeof LlamaClient> = {
-  LLAMA_CPP: LlamaClient,
-  GEMINI: GeminiLLMClient,
-};
-
-/**
- * Get the selected LLM client based on ENGINE environment variable
- */
-function getSelectedLLMClient(): ILLMClient {
-  const engine = (process.env.ENGINE || 'GEMINI').toUpperCase();
-  const SelectedClientClass = ENGINE_MAPPING[engine] || GeminiLLMClient;
-  return SelectedClientClass.fromEnvironment();
-}
+import { v4 as uuidv4 } from "uuid";
+import type { Assistant } from "../assistant/assistant";
+import type { Message, TokenInfo, Result } from "../types";
+import { loadSessionHistory, saveSessionHistory } from "../files/sessionFiles";
+import { appendToWAL } from "../files/wal";
+import { MAX_CONTEXT_TOKENS } from "../files/config";
+import { LLMChatSession, LLMClient, LLMResponse } from "../llm/types";
+import { getLLMClient } from "../llm";
 
 /**
  * ChatSession class - represents and manages a single chat session
@@ -41,8 +17,8 @@ function getSelectedLLMClient(): ILLMClient {
 export class ChatSession {
   private sessionId: string;
   private history: Message[] = [];
-  private llmClient: ILLMClient;
-  private llmChatSession: ILLMChatSession;
+  private llmClient: LLMClient;
+  private llmChatSession: LLMChatSession;
   private assistant: Assistant;
 
   constructor(assistant: Assistant, sessionId?: string, history?: Message[]) {
@@ -50,8 +26,7 @@ export class ChatSession {
     this.assistant = assistant;
     this.history = history || [];
 
-    // Initialize LLM client
-    this.llmClient = getSelectedLLMClient();
+    this.llmClient = getLLMClient();
 
     // Create chat session
     this.llmChatSession = this.llmClient.createChatSession(
@@ -82,7 +57,7 @@ export class ChatSession {
   /**
    * Save session to file
    */
-  saveToFile(): Result<boolean, string> {
+  public saveToFile(): Result<boolean, string> {
     return saveSessionHistory(
       this.sessionId,
       this.history,
@@ -114,16 +89,10 @@ export class ChatSession {
     return response;
   }
 
-  /**
-   * Get conversation history
-   */
   getHistory(): Message[] {
     return this.history;
   }
 
-  /**
-   * Clear all history
-   */
   clearHistory(): void {
     this.history = [];
     // Recreate chat session with empty history
@@ -153,31 +122,19 @@ export class ChatSession {
     return true;
   }
 
-  /**
-   * Count total tokens in history
-   */
   countTokens(): number {
     return this.llmClient.countHistoryTokens(this.history);
   }
 
-  /**
-   * Check if session is empty
-   */
   isEmpty(): boolean {
     return this.history.length === 0;
   }
 
-  /**
-   * Get remaining tokens in context
-   */
   getRemainingTokens(): number {
     const used = this.countTokens();
     return MAX_CONTEXT_TOKENS - used;
   }
 
-  /**
-   * Get token information
-   */
   getTokenInfo(): TokenInfo {
     const total = this.countTokens();
     const remaining = this.getRemainingTokens();
@@ -188,23 +145,14 @@ export class ChatSession {
     };
   }
 
-  /**
-   * Get assistant name
-   */
   get assistantName(): string {
     return this.assistant.name;
   }
 
-  /**
-   * Get session ID
-   */
   get id(): string {
     return this.sessionId;
   }
 
-  /**
-   * Get model name
-   */
   get modelName(): string {
     return this.llmClient.getModelName();
   }

@@ -2,19 +2,19 @@
  * User input handling with autocompletion support
  */
 
-import readline from 'readline';
-import inquirer from 'inquirer';
+import readline from "readline";
+import inquirer from "inquirer";
 
 /**
  * Available commands and their subcommands for autocompletion
  */
 const commands: Record<string, string[]> = {
-  '/session': ['list', 'display', 'new', 'clear', 'pop', 'remove'],
-  '/switch': [],
-  '/help': [],
-  '/exit': [],
-  '/quit': [],
-  '/pdf': [],
+  "/session": ["list", "display", "new", "clear", "pop", "remove"],
+  "/switch": [],
+  "/help": [],
+  "/exit": [],
+  "/quit": [],
+  "/pdf": [],
 };
 
 /**
@@ -26,20 +26,20 @@ function completer(line: string): [string[], string] {
   const lastToken = tokens[tokens.length - 1];
 
   // Case 1: Completing main commands (e.g., "/ses" -> "/session")
-  if (tokens.length === 1 && !line.endsWith(' ')) {
+  if (tokens.length === 1 && !line.endsWith(" ")) {
     const hits = Object.keys(commands).filter((c) => c.startsWith(line));
     return [hits, line];
   }
 
   // Case 2: After a main command with space, suggest all subcommands
-  if (tokens.length > 1 && line.endsWith(' ')) {
+  if (tokens.length > 1 && line.endsWith(" ")) {
     const primaryCommand = tokens[0];
     const subCommands = commands[primaryCommand] || [];
     return [subCommands, lastToken];
   }
 
   // Case 3: Completing subcommands (e.g., "/session l" -> "list")
-  if (tokens.length > 1 && !line.endsWith(' ')) {
+  if (tokens.length > 1 && !line.endsWith(" ")) {
     const primaryCommand = tokens[0];
     const subCommands = commands[primaryCommand] || [];
     const hits = subCommands.filter((s) => s.startsWith(lastToken));
@@ -47,13 +47,13 @@ function completer(line: string): [string[], string] {
   }
 
   // Default: no completions
-  return [[], ''];
+  return [[], ""];
 }
 
 /**
  * Get user input with autocompletion support
  */
-export async function getUserInput(prompt: string = 'TY: '): Promise<string> {
+export async function getUserInput(prompt: string = ">>>:"): Promise<string> {
   return new Promise((resolve) => {
     const rl = readline.createInterface({
       input: process.stdin,
@@ -75,8 +75,8 @@ export async function getUserInput(prompt: string = 'TY: '): Promise<string> {
 export async function getConfirmation(message: string): Promise<boolean> {
   const answers = await inquirer.prompt([
     {
-      type: 'confirm',
-      name: 'confirmed',
+      type: "confirm",
+      name: "confirmed",
       message,
       default: false,
     },
@@ -94,8 +94,8 @@ export async function selectFromList<T>(
 ): Promise<T> {
   const answers = await inquirer.prompt([
     {
-      type: 'list',
-      name: 'selected',
+      type: "list",
+      name: "selected",
       message,
       choices,
     },

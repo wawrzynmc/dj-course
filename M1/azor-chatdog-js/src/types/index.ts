@@ -14,7 +14,7 @@ export interface MessagePart {
  * Compatible with both Gemini and LLaMA
  */
 export interface Message {
-  role: 'user' | 'model';
+  role: "user" | "model";
   parts: MessagePart[];
 }
 
@@ -22,7 +22,7 @@ export interface Message {
  * Message with timestamp for persistence
  */
 export interface TimestampedMessage {
-  role: 'user' | 'model';
+  role: "user" | "model";
   timestamp: string;
   text: string;
 }
@@ -61,13 +61,6 @@ export interface SessionMetadata {
 }
 
 /**
- * LLM response interface
- */
-export interface LLMResponse {
-  text: string;
-}
-
-/**
  * Token information
  */
 export interface TokenInfo {
@@ -84,70 +77,11 @@ export type Result<T, E = string> =
   | { success: false; error: E };
 
 /**
- * LLM Client interface - implemented by both Gemini and LLaMA clients
- */
-export interface ILLMClient {
-  /**
-   * Create a chat session with system instruction and optional history
-   */
-  createChatSession(
-    systemInstruction: string,
-    history?: Message[],
-    thinkingBudget?: number
-  ): ILLMChatSession;
-
-  /**
-   * Count tokens in message history
-   */
-  countHistoryTokens(history: Message[]): number;
-
-  /**
-   * Get the model name
-   */
-  getModelName(): string;
-
-  /**
-   * Check if the client is available/configured
-   */
-  isAvailable(): boolean;
-
-  /**
-   * Get message shown while preparing the model
-   */
-  preparingForUseMessage(): string;
-
-  /**
-   * Get message shown when model is ready
-   */
-  readyForUseMessage(): string;
-}
-
-/**
- * LLM Chat Session interface - wraps provider-specific chat sessions
- */
-export interface ILLMChatSession {
-  /**
-   * Send a message and get response
-   */
-  sendMessage(text: string): Promise<LLMResponse>;
-
-  /**
-   * Get conversation history in universal format
-   */
-  getHistory(): Message[];
-}
-
-/**
  * CLI arguments
  */
 export interface CLIArguments {
   sessionId?: string;
 }
-
-/**
- * Engine type for LLM selection
- */
-export type EngineType = 'GEMINI' | 'LLAMA_CPP';
 
 /**
  * Session operation result

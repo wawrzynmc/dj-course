@@ -1,8 +1,5 @@
-/**
- * LLM client exports
- */
-
-export * from './geminiClient.js';
-export * from './geminiValidation.js';
-export * from './llamaClient.js';
-export * from './llamaValidation.js';
+export * from "./gemini";
+export * from "./llama";
+export * from "./openai";
+export * from "./types";
+export * from "./llm.client";
